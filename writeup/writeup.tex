@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{stix}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{nth}
+\usepackage[linguistics]{forest}
+\usepackage{multicol}
+\usepackage{pgf, tikz}
+\usepackage{wrapfig}
+\usetikzlibrary{arrows, automata}
+\usepackage{graphicx}
+\usepackage[siunitx, RPvoltages]{circuitikz}
+\usepackage{siunitx}
+
+\begin{document}
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{logo.jpg}
+    \end{center}
+    
+    Ulysses Butler
+    
+    CS 484: Embedded System
+    \begin{center}
+        Final Project Write Up
+    \end{center}
+
+    \section{Electronics}
+    
+    \subsection{Sound}
+    
+    In order to get the sound working with this project, we used PWM mode 7 with Timer0. Since we're using output compare mode, we hook the speaker up to \verb|OC0B| (which is located on the same physical pin as \verb|PD5|.
+
+    \begin{wrapfigure}{r}{1cm}
+        \begin{circuitikz}
+            \draw (0,0) node[anchor=north,above] {$PB5$} to[R=$R_1$, *-] (0,-2.5)
+            to[loudspeaker, name=L] (0,-3.5)
+            to (0,-3.5) node[ground] {};
+        \end{circuitikz}
+    \end{wrapfigure}
+    
+    In our program, we want to play a different tone for each light. In our project, we decided that the green lights will play an F, red will play a G, blue will play an A, and yellow will play a B tone. These correspond to roughly \SI{349}{\hertz}, \SI{392}{\hertz}, \SI{440}{\hertz}, and \SI{493}{\hertz}, respectively. To acheive this, we can use a prescalar of 256 for all of these tones. Depending on what tone we're trying to play, we simply set the approprite values for the output compare registers, \verb|OCR0A| and \verb|OBR0B|.
+    
+    Once the timer is set up, we hook \verb|OC0B| up to a potentiometer, which is then attached to the transducer. The transducer is connected to ground, completing the circuit. Once this is done, the potentiometer can essentially be used to control the volume of the tone. To stop the tone, we can just turn off the timer.
+
+    \subsection{Lights}
+    
+    The LEDs can be connected to any of the remaining ports. For this project, we've decided to hook them up to \verb|PB0|, \verb|PB1|, \verb|PB2|, and \verb|PB3|. That being said, these can easily be modifed in software. The IO registers are initialized using the \verb|lcdInit()| function, which takes the numbers of four physical pins as parameters. These circuit for these lights then passes through \SI{330}{\ohm} resistors to ground. An LED is then turned off or on by controlling its respective pin.
+    
+    When we display the current sequence to the user, we want to wait about a second before we turn off the light so the user has a chance to see what it is. Once the light is off, we want to wait for another moment for the user to see that the light is changing. This way, if the same light is shows multiple times in a row, the user will be able to easily disguish between each flash. This is accomplished by waiting between the commands to turn the light on or off. In order to accurately time the duration of the wait, we use the 16-bit timer. Since nothing needs to be done during the wait, the function can simply block and return after the desired time. This is done by starting the timer with approprite scalar and output compare value, then watching the approprite flag. Once the flag is set, we return from the function.
+    
+    \subsection{Buttons}
+    
+    Similarly, the four buttons are connected to four pins indicated by parameters to the \verb|buttonInit()| function. For our project, we decided to connect then to \verb|PD0|, \verb|PD1|, \verb|PD2|, and \verb|PD3|. These pins are set out input pins, then the internal pull-up resistors are enabled. The buttons are then connected to ground so we can monitor their values in real time. Here, we again use a timer to compensate for button bounce. Once the button is lifted, we wait for a little over \SI{50}{\milli\second} and make sure the button is still lifted at the end.  
+    
+    \subsection{Random Number Generation}
+    
+    In order to generate a random sequence of values, we use the ADC as it reads values from the internal thermometer. In order to generate a random value, we generate all 10 bits of the ADC. This is far too precise to be accurate, so the last few bits are extremely volatile. We then return the value of the last two-bits. This gives us a random number from 0 to 3 (inclusive), one value for each light. You could say we built a... two-bit random number generator.
+\end{document}
